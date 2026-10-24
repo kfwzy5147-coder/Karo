@@ -57,7 +57,7 @@
             <p class="text-slate-300 text-sm mt-1 font-medium">سحب الهدايا المباشر 🎁</p>
         </div>
 
-        <!-- 1. Participant Form -->
+        <!-- Participant Form -->
         <div id="form-section">
             <div class="space-y-4 mb-6">
                 <div>
@@ -70,12 +70,13 @@
                 </div>
             </div>
 
-            <button onclick="submitParticipation()" class="w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transform transition active:scale-95 text-lg">
-                <i class="fa-solid fa-paper-plane ml-2"></i> دخول السحب
+            <button id="submit-btn" onclick="submitParticipation()" class="w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transform transition active:scale-95 text-lg flex items-center justify-center gap-2">
+                <span>دخول السحب</span>
+                <i class="fa-solid fa-paper-plane"></i>
             </button>
         </div>
 
-        <!-- 2. Result View Section -->
+        <!-- Result View Section -->
         <div id="result-section" class="hidden space-y-4 py-4">
             <div id="result-icon" class="text-6xl mb-2 animate-bounce-short">🎁</div>
             <h2 id="result-title" class="text-2xl font-black">--</h2>
@@ -118,35 +119,30 @@
     </div>
 
     <script>
-        // System Keys
-        const STORAGE_KEY_COUNTER = 'augustine_draw_counter_v3';
-        const STORAGE_KEY_PARTICIPANTS = 'augustine_participants_v3';
-        const STORAGE_KEY_USER_RESULT = 'augustine_user_has_entered_v3';
+        // System Keys & Cloud Sync API (KV Store)
+        const LOCAL_STORAGE_USER_RESULT = 'augustine_user_has_entered_v4';
+        const BIN_ID = 'augustine_draw_live_v1';
+        const CLOUD_API_URL = 'https://api.counterapi.dev/v1/augustine_draw_2026/count/';
 
-        // Logo Click Tracking for Admin Access
         let logoClickCount = 0;
         let logoClickTimer = null;
 
         function handleLogoClick() {
             logoClickCount++;
             clearTimeout(logoClickTimer);
-            
             if (logoClickCount >= 3) {
                 logoClickCount = 0;
                 openAdminModal();
             } else {
-                logoClickTimer = setTimeout(() => {
-                    logoClickCount = 0;
-                }, 1200);
+                logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 1200);
             }
         }
 
-        // Web Audio Synthesizer for SFX
+        // Web Audio Synthesizer
         function playSound(type) {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
                 if (type === 'win') {
-                    // Celebration Fanfare
                     const notes = [523.25, 659.25, 783.99, 1046.50];
                     notes.forEach((freq, idx) => {
                         const osc = ctx.createOscillator();
@@ -161,7 +157,6 @@
                         osc.stop(ctx.currentTime + idx * 0.12 + 0.4);
                     });
                 } else if (type === 'lose') {
-                    // Sad Buzzer
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
                     osc.type = 'sawtooth';
@@ -174,7 +169,6 @@
                     osc.start(ctx.currentTime);
                     osc.stop(ctx.currentTime + 0.5);
                 } else if (type === 'cricket') {
-                    // Cricket chirp effect
                     for (let i = 0; i < 3; i++) {
                         const osc = ctx.createOscillator();
                         const gain = ctx.createGain();
@@ -189,54 +183,46 @@
                     }
                 }
             } catch(e) {
-                console.log('Audio Context Error', e);
+                console.log('Audio error:', e);
             }
         }
 
-        // Trigger Confetti
         function triggerConfetti() {
             if (typeof confetti === 'function') {
-                confetti({
-                    particleCount: 120,
-                    spread: 80,
-                    origin: { y: 0.6 }
-                });
+                confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
             }
         }
 
-        // On Page Load Check
         window.addEventListener('DOMContentLoaded', () => {
             checkExistingUserStatus();
         });
 
         function checkExistingUserStatus() {
-            const savedResult = localStorage.getItem(STORAGE_KEY_USER_RESULT);
+            const savedResult = localStorage.getItem(LOCAL_STORAGE_USER_RESULT);
             if (savedResult) {
                 const data = JSON.parse(savedResult);
                 showAlreadyEnteredScreen(data);
             }
         }
 
-        // Show screen for user who already entered
         function showAlreadyEnteredScreen(userResultData) {
             document.getElementById('form-section').classList.add('hidden');
             const resultSection = document.getElementById('result-section');
             resultSection.classList.remove('hidden');
 
             document.getElementById('result-icon').innerText = '🔒';
-            document.getElementById('result-title').innerText = 'تمت المشاركة سابقاً';
+            document.getElementById('result-title').innerText = 'كان فيه وخلص!';
             document.getElementById('result-title').className = 'text-2xl font-black text-amber-400';
             
             document.getElementById('result-box').innerHTML = `
-                <p class="font-bold text-amber-300 text-base mb-1">كان فيه وخلص!</p>
-                <p class="text-slate-300">عذراً ${userResultData.name || ''}، مسموح بفرصة دخول واحدة فقط لكل فرد.</p>
+                <p class="font-bold text-amber-300 text-base mb-1">تم تسجل مشاركتك سابقاً</p>
+                <p class="text-slate-300">عذراً ${userResultData.name || ''}، غير مسموح بالدخول أكثر من مرة واحدة فقط.</p>
                 <hr class="border-slate-700 my-3">
-                <p class="text-xs text-slate-400">ترتيب مشاركتك المسجل: <span class="text-indigo-300 font-bold">#${userResultData.count}</span></p>
+                <p class="text-xs text-slate-400">رقم مشاركتك المسجل: <span class="text-indigo-300 font-bold">#${userResultData.count}</span></p>
             `;
         }
 
-        // Handle Main Participation Submission
-        function submitParticipation() {
+        async function submitParticipation() {
             const nameInput = document.getElementById('user-name').value.trim();
             const phoneInput = document.getElementById('user-phone').value.trim();
 
@@ -250,39 +236,52 @@
                 return;
             }
 
-            // Check duplicate phone in global storage
-            let participants = JSON.parse(localStorage.getItem(STORAGE_KEY_PARTICIPANTS) || '[]');
-            const phoneExists = participants.some(p => p.phone === phoneInput);
-
-            if (phoneExists) {
-                alert('⚠️ هذا الرقم شارك في السحب بالفعل سابقاً! مسموح بمشاركة واحدة فقط.');
+            // Check device repeat
+            const saved = localStorage.getItem(LOCAL_STORAGE_USER_RESULT);
+            if (saved) {
+                showAlreadyEnteredScreen(JSON.parse(saved));
                 return;
             }
 
-            // Increment Global Participant Counter
-            let currentCounter = parseInt(localStorage.getItem(STORAGE_KEY_COUNTER) || '0') + 1;
-            localStorage.setItem(STORAGE_KEY_COUNTER, currentCounter.toString());
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري تسجيل المشاركة...`;
 
-            // Record Participant Data
-            const newParticipant = {
-                id: Date.now(),
-                name: nameInput,
-                phone: phoneInput,
-                count: currentCounter,
-                date: new Date().toLocaleTimeString('ar-EG')
-            };
+            try {
+                // Increment global counter on the cloud server
+                const res = await fetch('https://api.counterapi.dev/v1/augustinedraw2026/participants/up');
+                const data = await res.json();
+                const globalCount = data.count || 1;
 
-            participants.push(newParticipant);
-            localStorage.setItem(STORAGE_KEY_PARTICIPANTS, JSON.stringify(participants));
+                const participantData = {
+                    name: nameInput,
+                    phone: phoneInput,
+                    count: globalCount,
+                    date: new Date().toLocaleTimeString('ar-EG')
+                };
 
-            // Save state to local device so user cannot retry
-            localStorage.setItem(STORAGE_KEY_USER_RESULT, JSON.stringify(newParticipant));
+                // Store user status locally so they can't re-enter
+                localStorage.setItem(LOCAL_STORAGE_USER_RESULT, JSON.stringify(participantData));
 
-            // Render Result Based on Global Count
-            renderResultUI(currentCounter, nameInput);
+                renderResultUI(globalCount, nameInput);
+            } catch (err) {
+                console.error(err);
+                // Fallback to local counter if cloud has network issues
+                let localCount = parseInt(localStorage.getItem('fallback_count') || '0') + 1;
+                localStorage.setItem('fallback_count', localCount);
+
+                const participantData = {
+                    name: nameInput,
+                    phone: phoneInput,
+                    count: localCount,
+                    date: new Date().toLocaleTimeString('ar-EG')
+                };
+
+                localStorage.setItem(LOCAL_STORAGE_USER_RESULT, JSON.stringify(participantData));
+                renderResultUI(localCount, nameInput);
+            }
         }
 
-        // Render UI Results
         function renderResultUI(countNumber, userName) {
             document.getElementById('form-section').classList.add('hidden');
             const resultSection = document.getElementById('result-section');
@@ -293,7 +292,6 @@
             const boxEl = document.getElementById('result-box');
 
             if (countNumber < 18) {
-                // Participant 1 to 17
                 iconEl.innerText = '😔';
                 titleEl.innerText = 'خيرها ف غيرها يصاحبي';
                 titleEl.className = 'text-2xl font-black text-rose-400';
@@ -306,7 +304,6 @@
                 playSound('lose');
 
             } else if (countNumber === 18) {
-                // Participant 18 - WINNER!
                 iconEl.innerText = '🎉';
                 titleEl.innerText = 'مبروك كسبت مج حراري 🎁✨';
                 titleEl.className = 'text-2xl font-black text-amber-300 animate-pulse';
@@ -323,7 +320,6 @@
                 triggerConfetti();
 
             } else {
-                // Participant 19+ - CLOSED
                 iconEl.innerText = '🖐️';
                 titleEl.innerText = 'شطبنا تعال الاجتماع الي بعده';
                 titleEl.className = 'text-2xl font-black text-amber-400';
@@ -357,34 +353,22 @@
             }
         }
 
-        function updateAdminPanel() {
-            const count = localStorage.getItem(STORAGE_KEY_COUNTER) || '0';
-            document.getElementById('counter-display').innerText = count;
-
-            const participants = JSON.parse(localStorage.getItem(STORAGE_KEY_PARTICIPANTS) || '[]');
-            const listEl = document.getElementById('participants-list');
-
-            if (participants.length === 0) {
-                listEl.innerHTML = '<p class="text-center text-slate-500">لا يوجد مشاركون حتى الآن</p>';
-                return;
+        async function updateAdminPanel() {
+            try {
+                const res = await fetch('https://api.counterapi.dev/v1/augustinedraw2026/participants');
+                const data = await res.json();
+                document.getElementById('counter-display').innerText = data.count || 0;
+            } catch(e) {
+                document.getElementById('counter-display').innerText = 'خطأ في الاتصال';
             }
-
-            listEl.innerHTML = participants.map(p => `
-                <div class="flex justify-between items-center bg-slate-900/60 p-2 rounded border border-slate-700/50">
-                    <div>
-                        <span class="font-bold text-amber-300">#${p.count}</span> - <span>${p.name}</span>
-                        <span class="block text-[10px] text-slate-400" dir="ltr">${p.phone}</span>
-                    </div>
-                    <span class="text-[10px] text-slate-400">${p.date}</span>
-                </div>
-            `).join('');
         }
 
-        function resetSystemData() {
+        async function resetSystemData() {
             if (confirm('هل أنت تأكد من تصفير كافة بيانات المشاركين وإعادة السحب للصفر؟')) {
-                localStorage.removeItem(STORAGE_KEY_COUNTER);
-                localStorage.removeItem(STORAGE_KEY_PARTICIPANTS);
-                localStorage.removeItem(STORAGE_KEY_USER_RESULT);
+                try {
+                    await fetch('https://api.counterapi.dev/v1/augustinedraw2026/participants/set?count=0');
+                } catch(e) {}
+                localStorage.clear();
                 alert('تم إعادة التصفير بنجاح.');
                 location.reload();
             }
