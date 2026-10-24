@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سحب الهدايا - أسرة القديس اغسطينوس 🎁</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .animate-bounce-short {
+            animation: bounce 1s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body class="text-white flex items-center justify-center p-4 min-h-screen">
+
+    <div class="max-w-md w-full glass-card rounded-3xl p-6 sm:p-8 text-center relative overflow-hidden">
+        
+        <!-- Header Section -->
+        <div class="mb-6">
+            <div id="logo-btn" onclick="handleLogoClick()" class="w-20 h-20 mx-auto bg-indigo-600/30 rounded-full flex items-center justify-center border-2 border-indigo-400/50 mb-3 cursor-pointer select-none transition hover:scale-105 active:scale-95 shadow-lg">
+                <span class="text-4xl">⛪</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-pink-400 to-indigo-300">
+                أسرة القديس اغسطينوس
+            </h1>
+            <p class="text-slate-300 text-sm mt-1 font-medium">سحب الهدايا المباشر 🎁</p>
+        </div>
+
+        <!-- 1. Participant Form -->
+        <div id="form-section">
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label class="block text-right text-xs font-bold text-indigo-200 mb-1">الاسم بالكامل</label>
+                    <input type="text" id="user-name" placeholder="اكتب اسمك الثلاثي" class="w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+                </div>
+                <div>
+                    <label class="block text-right text-xs font-bold text-indigo-200 mb-1">رقم الموبايل</label>
+                    <input type="tel" id="user-phone" placeholder="01xxxxxxxx" class="w-full bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition text-left" dir="ltr">
+                </div>
+            </div>
+
+            <button onclick="submitParticipation()" class="w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:to-pink-600 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transform transition active:scale-95 text-lg">
+                <i class="fa-solid fa-paper-plane ml-2"></i> دخول السحب
+            </button>
+        </div>
+
+        <!-- 2. Result View Section -->
+        <div id="result-section" class="hidden space-y-4 py-4">
+            <div id="result-icon" class="text-6xl mb-2 animate-bounce-short">🎁</div>
+            <h2 id="result-title" class="text-2xl font-black">--</h2>
+            <div id="result-box" class="p-4 rounded-2xl bg-slate-900/70 border border-slate-700/50 text-slate-200 text-sm leading-relaxed">
+                <!-- Result Content -->
+            </div>
+        </div>
+
+        <!-- Admin Login Modal -->
+        <div id="admin-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+            <div class="bg-slate-900 border border-indigo-500/30 rounded-2xl p-6 w-full max-w-sm text-right space-y-4 relative">
+                <button onclick="closeAdminModal()" class="absolute top-3 left-3 text-slate-400 hover:text-white text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <h3 class="text-xl font-bold text-amber-300 mb-2">لوحة التحكم الأدمن 🔑</h3>
+                
+                <div id="admin-login-box" class="space-y-3">
+                    <label class="block text-xs font-semibold text-slate-300">كلمة المرور:</label>
+                    <input type="password" id="admin-pass" placeholder="****" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-center text-white focus:outline-none focus:border-amber-400">
+                    <button onclick="loginAdmin()" class="w-full bg-amber-500 hover:bg-amber-600 font-bold py-2 rounded-lg text-slate-950">دخول</button>
+                </div>
+
+                <div id="admin-panel" class="hidden space-y-4 pt-2">
+                    <div class="p-3 bg-slate-800 rounded-xl space-y-1">
+                        <p class="text-xs text-slate-400">عدد المشتركين كلياً:</p>
+                        <p id="counter-display" class="text-3xl font-black text-indigo-400">0</p>
+                    </div>
+
+                    <div class="max-h-40 overflow-y-auto bg-slate-800/50 rounded-xl p-2 text-xs space-y-1 text-slate-300" id="participants-list">
+                        <!-- Participations list -->
+                    </div>
+
+                    <button onclick="resetSystemData()" class="w-full bg-red-600 hover:bg-red-700 font-bold py-2 rounded-lg text-white text-sm">
+                        <i class="fa-solid fa-trash-can ml-1"></i> إعادة تصفير السحب
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // System Keys
+        const STORAGE_KEY_COUNTER = 'augustine_draw_counter_v3';
+        const STORAGE_KEY_PARTICIPANTS = 'augustine_participants_v3';
+        const STORAGE_KEY_USER_RESULT = 'augustine_user_has_entered_v3';
+
+        // Logo Click Tracking for Admin Access
+        let logoClickCount = 0;
+        let logoClickTimer = null;
+
+        function handleLogoClick() {
+            logoClickCount++;
+            clearTimeout(logoClickTimer);
+            
+            if (logoClickCount >= 3) {
+                logoClickCount = 0;
+                openAdminModal();
+            } else {
+                logoClickTimer = setTimeout(() => {
+                    logoClickCount = 0;
+                }, 1200);
+            }
+        }
+
+        // Web Audio Synthesizer for SFX
+        function playSound(type) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                if (type === 'win') {
+                    // Celebration Fanfare
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.value = freq;
+                        gain.gain.setValueAtTime(0.15, ctx.currentTime + idx * 0.12);
+                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.12 + 0.4);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(ctx.currentTime + idx * 0.12);
+                        osc.stop(ctx.currentTime + idx * 0.12 + 0.4);
+                    });
+                } else if (type === 'lose') {
+                    // Sad Buzzer
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, ctx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(110, ctx.currentTime + 0.5);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime);
+                    osc.stop(ctx.currentTime + 0.5);
+                } else if (type === 'cricket') {
+                    // Cricket chirp effect
+                    for (let i = 0; i < 3; i++) {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(4500, ctx.currentTime + i * 0.15);
+                        gain.gain.setValueAtTime(0.08, ctx.currentTime + i * 0.15);
+                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.08);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(ctx.currentTime + i * 0.15);
+                        osc.stop(ctx.currentTime + i * 0.15 + 0.08);
+                    }
+                }
+            } catch(e) {
+                console.log('Audio Context Error', e);
+            }
+        }
+
+        // Trigger Confetti
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 120,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        // On Page Load Check
+        window.addEventListener('DOMContentLoaded', () => {
+            checkExistingUserStatus();
+        });
+
+        function checkExistingUserStatus() {
+            const savedResult = localStorage.getItem(STORAGE_KEY_USER_RESULT);
+            if (savedResult) {
+                const data = JSON.parse(savedResult);
+                showAlreadyEnteredScreen(data);
+            }
+        }
+
+        // Show screen for user who already entered
+        function showAlreadyEnteredScreen(userResultData) {
+            document.getElementById('form-section').classList.add('hidden');
+            const resultSection = document.getElementById('result-section');
+            resultSection.classList.remove('hidden');
+
+            document.getElementById('result-icon').innerText = '🔒';
+            document.getElementById('result-title').innerText = 'تمت المشاركة سابقاً';
+            document.getElementById('result-title').className = 'text-2xl font-black text-amber-400';
+            
+            document.getElementById('result-box').innerHTML = `
+                <p class="font-bold text-amber-300 text-base mb-1">كان فيه وخلص!</p>
+                <p class="text-slate-300">عذراً ${userResultData.name || ''}، مسموح بفرصة دخول واحدة فقط لكل فرد.</p>
+                <hr class="border-slate-700 my-3">
+                <p class="text-xs text-slate-400">ترتيب مشاركتك المسجل: <span class="text-indigo-300 font-bold">#${userResultData.count}</span></p>
+            `;
+        }
+
+        // Handle Main Participation Submission
+        function submitParticipation() {
+            const nameInput = document.getElementById('user-name').value.trim();
+            const phoneInput = document.getElementById('user-phone').value.trim();
+
+            if (!nameInput || nameInput.length < 3) {
+                alert('برجاء كتابة الاسم الثلاثي بشكل صحيح');
+                return;
+            }
+
+            if (!phoneInput || phoneInput.length < 8) {
+                alert('برجاء كتابة رقم موبايل صحيح');
+                return;
+            }
+
+            // Check duplicate phone in global storage
+            let participants = JSON.parse(localStorage.getItem(STORAGE_KEY_PARTICIPANTS) || '[]');
+            const phoneExists = participants.some(p => p.phone === phoneInput);
+
+            if (phoneExists) {
+                alert('⚠️ هذا الرقم شارك في السحب بالفعل سابقاً! مسموح بمشاركة واحدة فقط.');
+                return;
+            }
+
+            // Increment Global Participant Counter
+            let currentCounter = parseInt(localStorage.getItem(STORAGE_KEY_COUNTER) || '0') + 1;
+            localStorage.setItem(STORAGE_KEY_COUNTER, currentCounter.toString());
+
+            // Record Participant Data
+            const newParticipant = {
+                id: Date.now(),
+                name: nameInput,
+                phone: phoneInput,
+                count: currentCounter,
+                date: new Date().toLocaleTimeString('ar-EG')
+            };
+
+            participants.push(newParticipant);
+            localStorage.setItem(STORAGE_KEY_PARTICIPANTS, JSON.stringify(participants));
+
+            // Save state to local device so user cannot retry
+            localStorage.setItem(STORAGE_KEY_USER_RESULT, JSON.stringify(newParticipant));
+
+            // Render Result Based on Global Count
+            renderResultUI(currentCounter, nameInput);
+        }
+
+        // Render UI Results
+        function renderResultUI(countNumber, userName) {
+            document.getElementById('form-section').classList.add('hidden');
+            const resultSection = document.getElementById('result-section');
+            resultSection.classList.remove('hidden');
+
+            const iconEl = document.getElementById('result-icon');
+            const titleEl = document.getElementById('result-title');
+            const boxEl = document.getElementById('result-box');
+
+            if (countNumber < 18) {
+                // Participant 1 to 17
+                iconEl.innerText = '😔';
+                titleEl.innerText = 'خيرها ف غيرها يصاحبي';
+                titleEl.className = 'text-2xl font-black text-rose-400';
+                
+                boxEl.innerHTML = `
+                    <p class="text-base font-bold text-rose-300 mb-1">حظ سعيد المرة القادمة!</p>
+                    <p class="text-slate-300 text-sm">للأسف الهدية لم تكن من نصيبك هذه المرة. حظ موفق في الفعاليات القادمة مع الأسرة! ✨</p>
+                    <div class="mt-3 text-xs bg-slate-950/50 p-2 rounded-lg text-slate-400">رقم مشاركتك: #${countNumber}</div>
+                `;
+                playSound('lose');
+
+            } else if (countNumber === 18) {
+                // Participant 18 - WINNER!
+                iconEl.innerText = '🎉';
+                titleEl.innerText = 'مبروك كسبت مج حراري 🎁✨';
+                titleEl.className = 'text-2xl font-black text-amber-300 animate-pulse';
+
+                boxEl.innerHTML = `
+                    <p class="text-lg font-bold text-emerald-400 mb-1">ألف مبروك يا ${userName}! 🥳</p>
+                    <p class="text-slate-200 text-sm mb-3">لقد فزت بـ <b>المج الحراري</b> الخاص بسحب أسرة القديس اغسطينوس!</p>
+                    <div class="bg-indigo-950/80 border border-indigo-500/50 p-3 rounded-xl text-center">
+                        <span class="block text-xs text-indigo-300">كود استلام الهدية:</span>
+                        <span class="text-xl font-black text-amber-300 tracking-wider">WIN-18-AUG</span>
+                    </div>
+                `;
+                playSound('win');
+                triggerConfetti();
+
+            } else {
+                // Participant 19+ - CLOSED
+                iconEl.innerText = '🖐️';
+                titleEl.innerText = 'شطبنا تعال الاجتماع الي بعده';
+                titleEl.className = 'text-2xl font-black text-amber-400';
+
+                boxEl.innerHTML = `
+                    <p class="text-base font-bold text-amber-300 mb-1">تم تسليم جوائز السحب بالكامل!</p>
+                    <p class="text-slate-300 text-sm">شرفتنا بمشاركتك، نتمنى رؤيتك دائماً في جميع الاجتماعات والفعاليات القادمة! ❤️</p>
+                    <div class="mt-3 text-xs bg-slate-950/50 p-2 rounded-lg text-slate-400">رقم مشاركتك: #${countNumber}</div>
+                `;
+                playSound('cricket');
+            }
+        }
+
+        // Admin Modal Controls
+        function openAdminModal() {
+            document.getElementById('admin-modal').classList.remove('hidden');
+        }
+
+        function closeAdminModal() {
+            document.getElementById('admin-modal').classList.add('hidden');
+        }
+
+        function loginAdmin() {
+            const pass = document.getElementById('admin-pass').value;
+            if (pass === '1234') {
+                document.getElementById('admin-login-box').classList.add('hidden');
+                document.getElementById('admin-panel').classList.remove('hidden');
+                updateAdminPanel();
+            } else {
+                alert('كلمة المرور غير صحيحة');
+            }
+        }
+
+        function updateAdminPanel() {
+            const count = localStorage.getItem(STORAGE_KEY_COUNTER) || '0';
+            document.getElementById('counter-display').innerText = count;
+
+            const participants = JSON.parse(localStorage.getItem(STORAGE_KEY_PARTICIPANTS) || '[]');
+            const listEl = document.getElementById('participants-list');
+
+            if (participants.length === 0) {
+                listEl.innerHTML = '<p class="text-center text-slate-500">لا يوجد مشاركون حتى الآن</p>';
+                return;
+            }
+
+            listEl.innerHTML = participants.map(p => `
+                <div class="flex justify-between items-center bg-slate-900/60 p-2 rounded border border-slate-700/50">
+                    <div>
+                        <span class="font-bold text-amber-300">#${p.count}</span> - <span>${p.name}</span>
+                        <span class="block text-[10px] text-slate-400" dir="ltr">${p.phone}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400">${p.date}</span>
+                </div>
+            `).join('');
+        }
+
+        function resetSystemData() {
+            if (confirm('هل أنت تأكد من تصفير كافة بيانات المشاركين وإعادة السحب للصفر؟')) {
+                localStorage.removeItem(STORAGE_KEY_COUNTER);
+                localStorage.removeItem(STORAGE_KEY_PARTICIPANTS);
+                localStorage.removeItem(STORAGE_KEY_USER_RESULT);
+                alert('تم إعادة التصفير بنجاح.');
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
